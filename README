@@ -1,0 +1,12 @@
+This is mostly roclovesrust example with some thoughts added in. I still lack understanding to get this going in the right direction
+
+What I do not understand:
+1. what is libapp.so? who and when makes it? how is it linked? 
+2. how do i expose the structs from platform to the roc app?
+3. can i make cargo produce final "main" binary? I would need to do final linking in runtime anyway...
+4. why when I do LD_LIBRARY_PATH="." cargo run i get segfaults? I'd expect it to build and do nothing and/or panic (as roc part is stubbed out), but segfault? what exactly is in libapp.so by default?
+
+What is the plan:
+1. a rust platform exposes some custom structs 
+2. rust platform starts and does some bookkeeping (like figuring out if it even needs to load any roc libraries, which ones in wants, etc) - this is just hypothetical, but it is important to not force static linking of roc library with rust main i belive. 
+2. ensure that rust code can call into functions defined in roc, which in turn can call into functions defined in rust. Fundamentally, in a game loop the engine would periodically call the plugin entrypoint functions (also known as callins), which may in turn call engine functions to change engine state (aka callouts). Importantly, the roc code is normally expected to respond to predefined events (via callins). Obivously, some of the callins may be optional (i.e. not defined) if the logic of a particular plugin does not need them.
