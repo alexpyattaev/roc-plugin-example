@@ -6,6 +6,9 @@ What I do not understand:
 3. can i make cargo produce final "main" binary? I would need to do final linking in runtime anyway...
 4. why when I do LD_LIBRARY_PATH="." cargo run i get segfaults? I'd expect it to build and do nothing and/or panic (as roc part is stubbed out), but segfault? what exactly is in libapp.so by default?
 
+
+Some examples of a working plugin system (in LUA): https://springrts.com/wiki/Lua_Beginners_FAQ The only problems there are that lua is a terrible language for large development, and is not particularly fast.
+
 What is the plan:
 1. a rust platform exposes some custom structs 
 2. rust platform starts and does some bookkeeping (like figuring out if it even needs to load any roc libraries, which ones in wants, etc) - this is just hypothetical, but it is important to not force static linking of roc library with rust main i belive. 
