@@ -6,10 +6,137 @@ What I do not understand:
 3. can i make cargo produce final "main" binary? I would need to do final linking in runtime anyway...
 4. why when I do LD_LIBRARY_PATH="." cargo run i get segfaults? I'd expect it to build and do nothing and/or panic (as roc part is stubbed out), but segfault? what exactly is in libapp.so by default?
 
-
 Some examples of a working plugin system (in LUA): https://springrts.com/wiki/Lua_Beginners_FAQ The only problems there are that lua is a terrible language for large development, and is not particularly fast.
 
 What is the plan:
 1. a rust platform exposes some custom structs 
 2. rust platform starts and does some bookkeeping (like figuring out if it even needs to load any roc libraries, which ones in wants, etc) - this is just hypothetical, but it is important to not force static linking of roc library with rust main i belive. 
 2. ensure that rust code can call into functions defined in roc, which in turn can call into functions defined in rust. Fundamentally, in a game loop the engine would periodically call the plugin entrypoint functions (also known as callins), which may in turn call engine functions to change engine state (aka callouts). Importantly, the roc code is normally expected to respond to predefined events (via callins). Obivously, some of the callins may be optional (i.e. not defined) if the logic of a particular plugin does not need them.
+
+# Luke's Proposal below
+
+I've been doing some research and developing an experiment for how I think we might be able write a plugin for a Bevy game using Roc as a plugin. Apologies for departing from your plan above, I need to learn more about game dev before i could really understand the bevy aspects. So here I try to make an end-to-end plugin that you can extend.
+
+The purpose of this experiment to understand more about the Plugin use-case for Roc and have a working example. We achieve this by scoping a minimal example, which glues all of the relevant parts together to achieve a demo.
+
+Note that I am unfamiliar with Rust, Bevy, and game development in general; so this is how I am collecting ny thoughts to try and develop a plan and to hopefully catch any unworkable ideas early. All thoughts, ideas, contributions are most welcome.
+
+## Scenario & Motivation
+
+Imagine I am a game developer. I have developed a game using Bevy, and now I would like to enable others to mod or extend my game. For the purpose of this discussion I will pretend that I have written the [Breakout Example](https://github.com/bevyengine/bevy/blob/main/examples/games/breakout.rs#L333) game and would like to enable others to provide customised functionality using a Roc plugin. 
+
+I think I can use Roc as a "plugin" or "script" that is loaded into my application on startup or at runtime. Unfortunately I haven't seen this done before, so I would like to conduct an experiment to inform this idea further and understand how this might work in practice.
+
+I want to do this using Roc because I understand that Roc is compiled and has excellent performance characteristics (memory, speed etc) which is important for the performance of my game. Roc is easy to use, and I know that I can expose a API that is managed safely by my game.
+
+## Goals - an MVP plugin for breakout
+- Build a Roc plugin
+- Build a Bevy game which loads the plugin 
+- Give the plugin the capability to do something (very basic)
+
+Note that more complicated capabilities such as commands to spawn entities, or running a game system, are deferred to a later experiment.  
+
+Let's start with a plugin that enables a game user (not the developer) to configure (or mod?) the colors within the game using Roc. We can imagine the game has been purchased in an app store or distrubited and now an end users is wanting to modify or extend the game with a plugin. 
+
+The developer will provide a game executable `breakout.exe`, and also a roc platform `https://url/path/to/my/platform.tar.bar` that is customised for the purpose of making a plugin for the breakout game.
+
+The user is then able to write a `colors.roc` plugin using this custom platform. This plugin will be loaded by the game on start up to configure the colors of various things withing the game (i.e. background color, paddle color, ball color, or brick color). 
+
+## The Roc Platform 
+The platform is where the game developer will define what capabilities they will be exposing to Roc, and how this interfaces with the host (i.e. Bevy breakout game). For this experiment the platform will simply enable the plugin author to choose a RGBA8 color for five things, the Background, Wall, Paddle, Ball, or Bricks.
+
+The platform could be located at `/roc/platform/` and includes a `main.roc` file. 
+
+The platform represents two interfaces, one is to the app (e.g. `colors.roc`) and the other is to the host e.g. `breakout.rs`.
+
+```roc
+platform "breakout-plugin"
+    requires {} { main : [Background, Wall, Paddle, Ball, Brick] -> (U8, U8, U8, U8) }
+    exposes []
+    packages {}
+    imports []
+    provides [mainForHost]
+
+mainForHost : Str -> (U8, U8, U8, U8)
+mainForHost = \argFromHost ->
+    when argFromHost is
+        "BACKGROUND_COLOR" -> main Background
+        "WALL_COLOR" -> main Wall
+        "PADDLE_COLOR" -> main Paddle
+        "BALL_COLOR" -> main Ball
+        "BRICK_COLOR" -> main Brick
+        _ -> crash "unreachable - host provided an unexpected argument"
+```
+
+**Interface with Host (Game)** Rust passes in a `RocStr` and expects a `(u8, u8, u8, u8)` to be returned. This represents a list of colors to be used for the given argument. Note that if the string isn't recongised then roc will `crash`. 
+
+**Interface with App (Plugin)** The app will be given a tag `[Background, Wall, Paddle, Ball, Brick]` by the platform and provides a `(U8, U8, U8, U8)` representing an RGBA8 color back to the host.
+
+## The Roc App (Plugin)
+The user writes a roc app `/colors.roc` 
+
+The roc app is built into a dynamic library against the platform using `roc build --no-link colors.roc`. This will produce a `color.dylib` that can then be loaded by the game.
+
+## The Bevy Game
+The game `/breakout.rs` is modified so that it can load the roc app and use it to configure the game colors.
+
+
+**Define a Bevy Plugin**
+
+This is a bit of a lazy question... but its not easy to find the relevant information I'm looking for. I'm doing some research and just wanting to know if I'm in the right direction. Am I thinking about this the right way? is it worth trying to build something like this or am I totally misunderstanding how roc, dynamic libraris and rust etc work.
+
+```rust 
+// load the roc app
+use libloading::{Library, library_filename, Symbol};
+unsafe {
+
+    // roc app built into a dylib using `roc build --lib color.roc`
+    let lib = Library::new(library_filename("colors")).unwrap(); 
+    
+    // I expect the following signature
+    // pub unsafe extern "C" fn roc__mainForHost_1_exposed_generic(*RocStr, *(u8,u8,u8,u8)) { ... etc }
+    let func: Symbol<fn()> = lib.get(b"roc__mainForHost_1_exposed_generic").unwrap();
+
+    // can I now simply call roc?? is it that easy
+    let rgba : *(u8,u8,u8,u8) = func(&RocStr.from("Hello World"));
+
+}
+```
+
+```rust
+struct RocColorPickerPlugin;
+
+impl bevy::app::Plugin for RocColorPickerPlugin {
+    fn build(&self, app: &mut App) {
+
+        // load the dynamic library
+        use libloading::{Library, library_filename, Symbol};
+        unsafe {
+
+            // roc app build using `roc build --lib color.roc`
+            let lib = Library::new(library_filename("colors")).unwrap(); 
+            
+            // I expect the following signature
+            // pub unsafe extern "C" fn roc__mainForHost_1_exposed_generic(*RocStr, *(u8,u8,u8,u8)) { ... etc }
+            let func: Symbol<fn()> = lib.get(b"roc__mainForHost_1_exposed_generic").unwrap();
+
+            // can I now simply call roc?? is it that easy
+            let rgba : *(u8,u8,u8,u8) = func(&RocStr.from("Hello World"));
+
+        }
+
+        // call roc passing in the colors we want to set
+        BACKGROUND_COLOR: Color = call_roc(RocStr.from("BACKGROUND_COLOR"));
+        BACKGROUND_COLOR: Color = call_roc(RocStr.from("PADDLE_COLOR"));
+        BACKGROUND_COLOR: Color = call_roc(RocStr.from("BALL_COLOR"));
+        BACKGROUND_COLOR: Color = call_roc(RocStr.from("BRICK_COLOR"));
+        BACKGROUND_COLOR: Color = call_roc(RocStr.from("WALL_COLOR"));
+
+        // let the user know
+        info!("{}", "Colors configured succesffuly!");
+
+    }
+}
+```
+
+
