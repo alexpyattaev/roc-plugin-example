@@ -2,14 +2,6 @@
 
 use core::ffi::c_void;
 use roc_std::RocStr;
-use std::ffi::CStr;
-use std::io::Write;
-use std::os::raw::c_char;
-
-extern "C" {
-    #[link_name = "roc__mainForHost_1_exposed_generic"]
-    fn roc_main(_: &mut RocStr);
-}
 
 #[no_mangle]
 pub unsafe extern "C" fn roc_alloc(size: usize, _alignment: u32) -> *mut c_void {
@@ -84,23 +76,15 @@ pub unsafe extern "C" fn roc_shm_open(
     libc::shm_open(name, oflag, mode as libc::c_uint)
 }
 
-//I'd like this example struct to be passable to roc plugin
-#[repr(C)] // do i need repr C for this to be passable into roc?
-pub struct GameObject{
-    type_ID:u32,
-    position: [f32;3],
-}
-
 #[no_mangle]
-pub extern "C" fn rust_main() -> i32 { //can this function have different name? Can we have more
-                                       //tan one callin from rust to roc?
-    let mut roc_str = RocStr::default();
-    unsafe { roc_main(&mut roc_str) };
+pub extern "C" fn rust_main() -> i32 {
+    unsafe {
+        _ = dbg!(roc_app::mainForHost(RocStr::from("BACKGROUND_COLOR")));
+        _ = dbg!(roc_app::mainForHost(RocStr::from("WALL_COLOR")));
+        _ = dbg!(roc_app::mainForHost(RocStr::from("PADDLE_COLOR")));
+        _ = dbg!(roc_app::mainForHost(RocStr::from("BALL_COLOR")));
+        _ = dbg!(roc_app::mainForHost(RocStr::from("BRICK_COLOR")));
+    };
 
-    if let Err(e) = std::io::stdout().write_all(roc_str.as_bytes()) {
-        panic!("Writing to stdout failed! {:?}", e);
-    }
-
-    // Exit code
-    0
+    0 // Exit code
 }

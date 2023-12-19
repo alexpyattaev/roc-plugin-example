@@ -16,3 +16,9 @@ Cargo.lock
 
 *.rm
 *.rh
+
+# the object files
+*.o
+
+# platform URL packages
+platform/*.tar.br

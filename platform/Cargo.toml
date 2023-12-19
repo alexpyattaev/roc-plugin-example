@@ -17,6 +17,7 @@ path = "src/main.rs"
 
 [dependencies]
 libc = "0.2"
-roc_std = { path = "/usr/share/roc/crates/roc_std" }
+roc_app = { path = "glue/roc_app" }
+roc_std = { path = "glue/roc_std" }
 
 [workspace]
