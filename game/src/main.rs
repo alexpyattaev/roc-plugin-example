@@ -303,7 +303,7 @@ fn setup(
 }
 
 fn move_paddle(
-    keyboard_input: Res<ButtonInput<KeyCode>>,
+    keyboard_input: Res<Input<KeyCode>>,
     mut query: Query<&mut Transform, With<Paddle>>,
     time: Res<Time>,
 ) {

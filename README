@@ -1,42 +1,30 @@
-This is mostly roclovesrust example with some thoughts added in. I still lack understanding to get this going in the right direction
-
-What I do not understand:
-1. what is libapp.so? who and when makes it? how is it linked? 
-2. how do i expose the structs from platform to the roc app?
-3. can i make cargo produce final "main" binary? I would need to do final linking in runtime anyway...
-4. why when I do LD_LIBRARY_PATH="." cargo run i get segfaults? I'd expect it to build and do nothing and/or panic (as roc part is stubbed out), but segfault? what exactly is in libapp.so by default?
-
-Some examples of a working plugin system (in LUA): https://springrts.com/wiki/Lua_Beginners_FAQ The only problems there are that lua is a terrible language for large development, and is not particularly fast.
-
-What is the plan:
-1. a rust platform exposes some custom structs 
-2. rust platform starts and does some bookkeeping (like figuring out if it even needs to load any roc libraries, which ones in wants, etc) - this is just hypothetical, but it is important to not force static linking of roc library with rust main i belive. 
-2. ensure that rust code can call into functions defined in roc, which in turn can call into functions defined in rust. Fundamentally, in a game loop the engine would periodically call the plugin entrypoint functions (also known as callins), which may in turn call engine functions to change engine state (aka callouts). Importantly, the roc code is normally expected to respond to predefined events (via callins). Obivously, some of the callins may be optional (i.e. not defined) if the logic of a particular plugin does not need them.
-
-# Luke's WIP Proposal below
-
-I've been doing some research and developing an experiment for how I think we might be able write a plugin for a Bevy game using Roc as a plugin. Apologies for departing from your plan above, I need to learn more about game dev before i could really understand the bevy aspects. So here I try to make an end-to-end plugin that you can extend.
-
-The purpose of this experiment to understand more about the Plugin use-case for Roc and have a working example. We achieve this by scoping a minimal example, which glues all of the relevant parts together to achieve a demo.
-
-Note that I am unfamiliar with Rust, Bevy, and game development in general; so this is how I am collecting ny thoughts to try and develop a plan and to hopefully catch any unworkable ideas early. All thoughts, ideas, contributions are most welcome.
-
 ## Scenario & Motivation
 
-Imagine I am a game developer. I have developed a game using Bevy, and now I would like to enable others to mod or extend my game. For the purpose of this discussion I will pretend that I have written the [Breakout Example](https://github.com/bevyengine/bevy/blob/main/examples/games/breakout.rs#L333) game and would like to enable others to provide customised functionality using a Roc plugin. 
+You've just developed a game using Bevy, and now would like to enable others to mod or extend it.
+For the purpose of this discussion we will utilize the [Breakout Example](https://github.com/bevyengine/bevy/blob/main/examples/games/breakout.rs#L333) and demonstrate how you could enable others to provide customised functionality using a plugin/scripting system. 
 
-I think I can use Roc as a "plugin" or "script" that is loaded into my application on startup or at runtime. Unfortunately I haven't seen this done before, so I would like to conduct an experiment to inform this idea further and understand how this might work in practice.
+### Should you use Roc for this?
 
-I want to do this using Roc because I understand that Roc is compiled and has excellent performance characteristics (memory, speed etc) which is important for the performance of my game. Roc is easy to use, and I know that I can expose a API that is managed safely by my game.
+ - Roc is compiled and has excellent performance characteristics (memory, speed etc) which is important for the performance of any game
+ - Roc is easy and non-intrusive on the engine side, one can expose an API that is managed safely by the game engine
+ - You want plugins to be threadsafe to integrate into automatic thread management systems such as Bevy
+
+### Should you use Python via PyO3 for this instead?
+
+ - Python enables dynamic introspection of the game state, and it is critical for you to have a friendly REPL/shell in the game
+ - You do not care about performance/memory footprint of the plugin
+ - Intrusive Python bindings are not an issue
 
 ## Goals - an MVP plugin for breakout
+The idea for this demo is that the Roc "plugin" or "script" would get loaded into the game on level startup.
+
 - (DONE) Build a Roc plugin 
 - (IN-PRGRESS) Build a Bevy game which loads the plugin
 - Give the plugin the capability to do something (very basic) 
 
 Note that more complicated capabilities such as commands to spawn entities, or running a game system, are deferred to a later experiment.  
 
-Let's start with a plugin that enables a game user (not the developer) to configure (or mod?) the colors within the game using Roc. We can imagine the game has been purchased in an app store or distrubited and now an end users is wanting to modify or extend the game with a plugin. 
+Let's start with a plugin that enables a game user (not the developer) to mod the colors within the game using Roc. We can imagine the game has been built and distrubited and now the community should modify or extend the game with a plugin. 
 
 The developer will provide a game executable `breakout`, and also a roc platform `https://url/path/to/my/platform.tar.bar` that is customised for the purpose of making a plugin for the breakout game.
 

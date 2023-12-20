@@ -3,7 +3,16 @@ name = "game"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+# Enable high optimizations for dependencies (incl. Bevy), but not for our code
+[profile.dev.package."*"]
+opt-level = 3
+
+# Enable minimal optimizations in dev build for faster build times
+[profile.dev]
+opt-level = 1
+
 
 [dependencies]
-bevy = "0.12.1"
+# Use dynamic linking for bevy to have faster build times in development
+bevy = {version="0.12.1", features=["dynamic_linking"]}
+
