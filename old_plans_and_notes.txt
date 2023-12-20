@@ -1,0 +1,25 @@
+
+This is mostly roclovesrust example with some thoughts added in. I still lack understanding to get this going in the right direction
+
+What I do not understand:
+1. what is libapp.so? who and when makes it? how is it linked? 
+2. how do i expose the structs from platform to the roc app?
+3. can i make cargo produce final "main" binary? I would need to do final linking in runtime anyway...
+4. why when I do LD_LIBRARY_PATH="." cargo run i get segfaults? I'd expect it to build and do nothing and/or panic (as roc part is stubbed out), but segfault? what exactly is in libapp.so by default?
+
+Some examples of a working plugin system (in LUA): https://springrts.com/wiki/Lua_Beginners_FAQ The only problems there are that lua is a terrible language for large development, and is not particularly fast.
+
+What is the plan:
+1. a rust platform exposes some custom structs 
+2. rust platform starts and does some bookkeeping (like figuring out if it even needs to load any roc libraries, which ones in wants, etc) - this is just hypothetical, but it is important to not force static linking of roc library with rust main i belive. 
+2. ensure that rust code can call into functions defined in roc, which in turn can call into functions defined in rust. Fundamentally, in a game loop the engine would periodically call the plugin entrypoint functions (also known as callins), which may in turn call engine functions to change engine state (aka callouts). Importantly, the roc code is normally expected to respond to predefined events (via callins). Obivously, some of the callins may be optional (i.e. not defined) if the logic of a particular plugin does not need them.
+
+# Luke's WIP Proposal below
+
+I've been doing some research and developing an experiment for how I think we might be able write a plugin for a Bevy game using Roc as a plugin. Apologies for departing from your plan above, I need to learn more about game dev before i could really understand the bevy aspects. So here I try to make an end-to-end plugin that you can extend.
+[AP] - no need for apologies, bevy is braindead simple. I'll make a simple bevy thing to be a placeholder app. My plan was mostly for myself to not get derailed=)
+
+The purpose of this experiment to understand more about the Plugin use-case for Roc and have a working example. We achieve this by scoping a minimal example, which glues all of the relevant parts together to achieve a demo. YES!
+
+Note that I am unfamiliar with Rust, Bevy, and game development in general; so this is how I am collecting ny thoughts to try and develop a plan and to hopefully catch any unworkable ideas early. All thoughts, ideas, contributions are most welcome.
+[AP] - I'm quite familiar with bevy, rust and gamedev, so if you have questions poke me=)

@@ -1,0 +1,2 @@
+cd game
+cargo build

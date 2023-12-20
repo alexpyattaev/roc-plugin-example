@@ -26,3 +26,5 @@ platform/*.tar.br
 #generated libraries
 *.dylib
 colors
+#Generated glue code
+generated_glue/*

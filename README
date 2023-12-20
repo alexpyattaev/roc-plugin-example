@@ -94,3 +94,11 @@ unsafe {
 }
 ```
 
+
+# Compiling
+The order is important here!
+ 1. glue.sh - generates glue files (rust source) that enables calling roc code from rust, and exposes roc datastructures to rust
+ 2. bundle.sh - bundles the platform code (do we even need it?)
+ 2. build_game.sh - builds the bevy game (this will need roc glue but not the plugin)
+ 3. build_plugin.sh - builds the platform & the roc plugin into a shared library
+

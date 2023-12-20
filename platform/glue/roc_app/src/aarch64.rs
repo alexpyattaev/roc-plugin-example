@@ -16,7 +16,8 @@
 #![allow(clippy::needless_borrow)]
 #![allow(clippy::clone_on_copy)]
 
-#[derive(Clone, Copy, Default, Debug, PartialEq, PartialOrd, Eq, Ord, Hash)]
+
+#[derive(Clone, Copy, Default, Debug, PartialEq, PartialOrd, Eq, Ord, Hash, )]
 #[repr(C)]
 pub struct RGBA {
     pub a: u8,
@@ -25,21 +26,17 @@ pub struct RGBA {
     pub r: u8,
 }
 
+
+
 pub fn mainForHost(arg0: roc_std::RocStr) -> RGBA {
     extern "C" {
-        fn roc__mainForHost_1_exposed_generic(
-            _: *mut RGBA,
-            _: &mut core::mem::ManuallyDrop<roc_std::RocStr>,
-        );
+        fn roc__mainForHost_1_exposed_generic(_: *mut RGBA, _: &mut core::mem::ManuallyDrop<roc_std::RocStr>);
     }
 
     let mut ret = core::mem::MaybeUninit::uninit();
 
     unsafe {
-        roc__mainForHost_1_exposed_generic(
-            ret.as_mut_ptr(),
-            &mut core::mem::ManuallyDrop::new(arg0),
-        );
+        roc__mainForHost_1_exposed_generic(ret.as_mut_ptr(), &mut core::mem::ManuallyDrop::new(arg0));
 
         ret.assume_init()
     }
