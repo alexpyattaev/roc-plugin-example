@@ -1,26 +1,45 @@
 mod roc_ffi;
 
-use libloading::{library_filename, Library, Symbol};
+use libloading::{Library, Symbol};
+use roc_app::RGBA;
 use roc_std::RocStr;
+use roc_ffi::force_export;
 
-fn load_plugin() {
+fn load_plugin(name: &str) {
     unsafe {
         // roc app built into a dylib using `roc build --lib color.roc`
-        let lib = Library::new(library_filename("colors")).unwrap();
+        let mut lib = Library::new(name).unwrap();
 
-        // I expect the following signature
-        // pub unsafe extern "C" fn roc__mainForHost_1_exposed_generic(*RocStr, *(u8,u8,u8,u8)) { ... etc }
-        let func: Symbol<fn(*const RocStr) -> *const (u8, u8, u8, u8)> =
-            lib.get(b"roc__mainForHost_1_exposed_generic").unwrap();
+        println!("Library loaded");
+      
+        // I expect the following signature based on what is in roc glue        
 
+        type mainforhost_fn = extern "C" fn(*mut RGBA, &mut core::mem::ManuallyDrop<roc_std::RocStr>);
+
+        let func: Symbol<mainforhost_fn> = lib.get(b"roc__mainForHost_1_exposed_generic").unwrap();
+
+        println!("Function extracted");
         // can I now simply call roc?? is it that easy
-        let rgba: *const (u8, u8, u8, u8) = func(&RocStr::from("Hello World"));
-        dbg!(rgba);
+        let mut ret = core::mem::MaybeUninit::<RGBA>::uninit();
+        let arg = RocStr::from("Background");
+        println!("Time to call!");
+        func(ret.as_mut_ptr(), &mut core::mem::ManuallyDrop::new(arg));
+        println!("Call successful!");
+        let ret = ret.assume_init();
+        dbg!(ret);
     }
 }
+
 fn main() {
-    println!("Hello, world!");
+    //force_export();
+
+    let mut args = std::env::args().skip(1);
+    let dllname = args
+        .next()
+        .expect("Expeceted absolute path to library to load");
+
+    println!("Will load {}", dllname);
     let rs = RocStr::from("Hello World");
-    load_plugin();
+    load_plugin(&dllname);
     dbg!(rs);
 }
