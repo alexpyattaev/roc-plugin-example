@@ -1,7 +1,12 @@
-## Scenario & Motivation
+# Roc Plugin Example
 
-You've just developed a game using Bevy, and now would like to enable others to mod or extend it.
-For the purpose of this discussion we will utilize the [Breakout Example](https://github.com/bevyengine/bevy/blob/main/examples/games/breakout.rs#L333) and demonstrate how you could enable others to provide customised functionality using a plugin/scripting system. 
+This repository is currently a 🚧 Work In Progress 🚧. We are exploring how to use Roc as a plugin lanugage for a Bevy game.
+
+## Motivation
+
+You've are developing a game using Bevy, and would like to enable others to mod or extend it.
+
+For this example we use the [Breakout Example](https://github.com/bevyengine/bevy/blob/main/examples/games/breakout.rs#L333) to demonstrate how a game developer can expose functionality for thier users through the use of a plugin written in Roc.
 
 ### Should you use Roc for this?
 
@@ -16,13 +21,13 @@ For the purpose of this discussion we will utilize the [Breakout Example](https:
  - Intrusive Python bindings are not an issue
 
 ## Goals - an MVP plugin for breakout
-The idea for this demo is that the Roc "plugin" or "script" would get loaded into the game on level startup.
+For this demo the Roc plugin will be loaded into the game on level startup.
 
-- (DONE) Build a Roc plugin 
-- (IN-PRGRESS) Build a Bevy game which loads the plugin
+- Build a Roc plugin 
+- Build a Bevy game which loads the plugin
 - Give the plugin the capability to do something (very basic) 
 
-Note that more complicated capabilities such as commands to spawn entities, or running a game system, are deferred to a later experiment.  
+Note that more complicated capabilities such as commands to spawn entities, or running a game system, are deferred to a later experiment.
 
 Let's start with a plugin that enables a game user (not the developer) to mod the colors within the game using Roc. We can imagine the game has been built and distrubited and now the community should modify or extend the game with a plugin. 
 
@@ -33,21 +38,57 @@ The user is then able to write a `colors.roc` plugin using this custom platform.
 ## The Roc Platform 
 The platform is where the game developer will define what capabilities they will be exposing to Roc, and how this interfaces with the host (i.e. Bevy breakout game). For this experiment the platform will simply enable the plugin author to choose a RGBA8 color for five things, the Background, Wall, Paddle, Ball, or Bricks.
 
-The platform is located at `/platform/main.roc`
+The platform is located at `/platform/main.roc`.
 
-**Interface with Host (Game)** Rust passes in a `RocStr` and gets a `RGBA` color. Note that if the string isn't recongised then roc will `crash`. 
+**Interface with Host (Game)** Rust passes in a `RocStr` and gets a `roc_app::RGBA` color. Note that if the string isn't recongised then roc will `crash`. Here the types in `roc_app` are generated from the Roc platform using the `roc glue` command.
 
-**Interface with App (Plugin)** The app is given a tag `[Background, Wall, Paddle, Ball, Brick]` by the platform and provides a `RGBA` which represents an RGBA8 color back to the host.
+**Interface with App (Plugin)** The app is given a tag `[Background, Wall, Paddle, Ball, Brick]` by the platform and provides a `RGBA : { r : U8, g : U8, b : U8, a : U8 }` back to the platform.
 
 ## The Roc App (Plugin)
 The user writes a roc app `/colors.roc`
 
-The roc app is built into a dynamic library against the platform using `roc build --no-link colors.roc`. This will produce a `color.dylib` that can then be loaded by the game.
+The roc app is built into a dynamic library against the platform using `roc build --lib colors.roc`. This produces a `color.dylib` that can then be loaded by the game.
 
 ## The Bevy Game
 The game `/breakout.rs` is modified so that it can load the roc app and use it to configure the game colors.
 
-## Define a Bevy Plugin
+# Idea Sequence 
+
+User writes a Roc plugin `colors.roc` against the platform provided by game developer
+
+User builds Roc plugin into a dynamic library
+
+User start Bevy application, which then loads Bevy plugins
+
+One of the the bevy plugins is our `RocColorPickerPlugin` which 
+- loads the `colors.dylib` dynamic library
+- calls Roc `roc_app::mainForHost` with a `roc_std::RocStr` argument
+- roc returns a `roc_app::RGBA` color
+- uses this color data to *somehow?* update the colors for the relevant entities in the game.
+
+## TODO Loading the dynamic library
+
+I think we can use something like this to load the `colors.dylib` into the bevy app. Brendan said as much in [this zulip thread](https://roc.zulipchat.com/#narrow/stream/231634-beginners/topic/Rust.20and.20Dynamic.20libraries/near/408725222).
+
+```rust 
+// load the roc app
+use libloading::{Library, library_filename, Symbol};
+unsafe {
+
+    // roc app built into a dylib using `roc build --lib color.roc`
+    let lib = Library::new(library_filename("colors")).unwrap(); 
+    
+    // I expect the following signature
+    // pub unsafe extern "C" fn roc__mainForHost_1_exposed_generic(*RocStr, *(u8,u8,u8,u8)) { ... etc }
+    let func: Symbol<fn()> = lib.get(b"roc__mainForHost_1_exposed_generic").unwrap();
+
+    // can I now simply call roc?? is it that easy
+    let rgba : *(u8,u8,u8,u8) = func(&RocStr.from("Hello World"));
+
+}
+```
+
+## TODO Implement a Bevy Plugin that call Roc
 
 ```rust
 struct RocColorPickerPlugin;
@@ -71,29 +112,6 @@ impl bevy::app::Plugin for RocColorPickerPlugin {
     }
 }
 ```
-
-## Loading the dynamic library
-
-I think we can use something like this to load the `colors.dylib` into the bevy app. Brendan said as much in [this zulip thread](https://roc.zulipchat.com/#narrow/stream/231634-beginners/topic/Rust.20and.20Dynamic.20libraries/near/408725222).
-
-```rust 
-// load the roc app
-use libloading::{Library, library_filename, Symbol};
-unsafe {
-
-    // roc app built into a dylib using `roc build --lib color.roc`
-    let lib = Library::new(library_filename("colors")).unwrap(); 
-    
-    // I expect the following signature
-    // pub unsafe extern "C" fn roc__mainForHost_1_exposed_generic(*RocStr, *(u8,u8,u8,u8)) { ... etc }
-    let func: Symbol<fn()> = lib.get(b"roc__mainForHost_1_exposed_generic").unwrap();
-
-    // can I now simply call roc?? is it that easy
-    let rgba : *(u8,u8,u8,u8) = func(&RocStr.from("Hello World"));
-
-}
-```
-
 
 # Compiling
 The order is important here!
