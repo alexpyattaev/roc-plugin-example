@@ -24,6 +24,7 @@ Cargo.lock
 platform/*.tar.br
 
 #generated libraries
+platform/dynhost
 *.dylib
 colors
 #Generated glue code

@@ -1,5 +1,4 @@
-mod roc_ffi;
-
+mod roc_ffi;// This ensures that functions to allocate memory, panic etc are present in the engine so roc code can actually run.
 use libloading::{Library, Symbol};
 use roc_app::*;
 //use roc_ffi::force_export;

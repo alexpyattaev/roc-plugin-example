@@ -78,13 +78,13 @@ pub unsafe extern "C" fn roc_shm_open(
 
 #[no_mangle]
 pub extern "C" fn rust_main() -> i32 {
-    unsafe {
+/*    unsafe {
         _ = dbg!(roc_app::mainForHost(RocStr::from("BACKGROUND_COLOR")));
         _ = dbg!(roc_app::mainForHost(RocStr::from("WALL_COLOR")));
         _ = dbg!(roc_app::mainForHost(RocStr::from("PADDLE_COLOR")));
         _ = dbg!(roc_app::mainForHost(RocStr::from("BALL_COLOR")));
         _ = dbg!(roc_app::mainForHost(RocStr::from("BRICK_COLOR")));
     };
-
+*/
     0 // Exit code
 }

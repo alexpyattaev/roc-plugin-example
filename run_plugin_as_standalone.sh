@@ -3,4 +3,4 @@
 # a more normal CLI binary, but it was already there in the platform switching example
 # so why not use it for debugging 
 
-roc run colors.roc
+roc run plugin_logic.roc
