@@ -89,7 +89,7 @@ pub unsafe extern "C" fn roc_shm_open(
 //     0 // Exit code
 // }
 
-pub fn force_export(){
+/*pub fn force_export(){
     
     let funcs: &[*const extern "C" fn()] = &[
         roc_panic as _,
@@ -97,4 +97,4 @@ pub fn force_export(){
         roc_dealloc as _      
     ];
     std::mem::forget(funcs);
-}
+}*/

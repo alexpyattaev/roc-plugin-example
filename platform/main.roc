@@ -1,22 +1,14 @@
 platform "breakout-plugin"
-# How do I require more than one function here?
-    requires {} { main : ColoredThings -> RGBA }
+
+    requires {} { main : U64 -> EngineCallins }
     exposes []
     packages {}
-    imports [Game.{ColoredThings, RGBA}]
-    # Why can I not provide more than one thing here?
+    imports [Game.{ColoredThings, RGBA, EngineCallins, Vec2, PluginState,CallinReset,CallinColors,CallinBounce}]
+
     provides [mainForHost]
 
-mainForHost : Str -> RGBA
+mainForHost : U64 -> EngineCallins
 mainForHost = \argFromHost ->
-    when argFromHost is
-        "BACKGROUND_COLOR" -> main Background
-        "WALL_COLOR" -> main Wall
-        "PADDLE_COLOR" -> main Paddle
-        "BALL_COLOR" -> main Ball
-        "BRICK_COLOR" -> main Brick
-        _ -> crash "the host provided an unexpected color key value"
+    main argFromHost
 
-testForHost: I64 -> I64
-testForHost = \x -> 
-    x + 1
+
