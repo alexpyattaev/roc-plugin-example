@@ -12,6 +12,10 @@ reset : CallinReset
 reset = \_arg->
     {placeholder:42}
 
+reset2 : CallinReset
+reset2 = \_arg->
+    crash "This is broken on purpose"
+
 
 # Called by engine to get the bounce angle based on speed of paddle and speed of ball
 bounceAngle : CallinBounce
@@ -30,5 +34,7 @@ selectColor= \color ->
         Brick -> {r:0, g:255, b:0, a:255}
 
 main: U64->EngineCallins
-main = \_arg ->
-    {reset : reset, colors : selectColor, bounce : bounceAngle}
+main = \arg ->
+    when arg is 
+        0 -> {reset : reset, colors : selectColor, bounce : bounceAngle}
+        _ -> {reset : reset2, colors : selectColor, bounce : bounceAngle}
