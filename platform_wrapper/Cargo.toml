@@ -1,0 +1,19 @@
+[package]
+name = "plugin_wrapper"
+authors = ["The Roc Contributors"]
+edition = "2021"
+license = "UPL-1.0"
+links = "app"
+version = "0.0.1"
+
+[lib]
+path = "src/lib.rs"
+crate-type = ["dylib", "rlib"]
+
+
+[dependencies]
+libc = "0.2"
+roc_app = { path = "../handrolled_glue/roc_app" }
+roc_std = { path = "../generated_glue/roc_std" }
+
+[workspace]

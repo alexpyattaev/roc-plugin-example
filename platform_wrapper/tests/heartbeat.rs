@@ -3,6 +3,14 @@
 use core::ffi::c_void;
 use roc_std::RocStr;
 
+use plugin_wrapper::*;
+
+#[test]
+fn test_plugin_init() {
+    rust_main();
+    dbg!("it works");
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn roc_alloc(size: usize, _alignment: u32) -> *mut c_void {
     return libc::malloc(size);
@@ -74,25 +82,4 @@ pub unsafe extern "C" fn roc_shm_open(
     mode: libc::mode_t,
 ) -> libc::c_int {
     libc::shm_open(name, oflag, mode as libc::c_uint)
-}
-
-#[no_mangle]
-pub extern "C" fn rust_main() -> i32 {
-    let callins = roc_app::mainForHost(42);
-    dbg!("it works");
-    //roc_app::EngineCallins
-    /*    unsafe {
-            _ = dbg!((RocStr::from("BACKGROUND_COLOR")));
-            _ = dbg!(roc_app::mainForHost(RocStr::from("WALL_COLOR")));
-            _ = dbg!(roc_app::mainForHost(RocStr::from("PADDLE_COLOR")));
-            _ = dbg!(roc_app::mainForHost(RocStr::from("BALL_COLOR")));
-            _ = dbg!(roc_app::mainForHost(RocStr::from("BRICK_COLOR")));
-        };
-    */
-    0 // Exit code
-}
-
-#[no_mangle]
-pub extern "C" fn callin_number_one() -> i32 {
-    42
 }
